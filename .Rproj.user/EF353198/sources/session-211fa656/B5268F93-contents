@@ -1,0 +1,674 @@
+---
+title: "script_treatment"
+author: "Samuel dos Santos Rodrigues"
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-location: left
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-tools: true
+    df-print: paged
+    fig-cap-location: top
+    fig-align: center
+    theme: cosmo
+    highlight-style: github
+    smooth-scroll: true
+    anchor-sections: true
+lang: pt-BR
+editor: visual
+---
+
+# Opções globais dos chunks:
+
+```{r chunck}
+
+knitr::opts_chunk$set(fig.align = 'center', out.width = '80%')
+
+```
+
+# Upload Github
+
+```{r github}
+
+usethis::use_github()
+
+```
+
+
+# Pacotes:
+
+```{r packcage, warning=FALSE, message=FALSE}
+
+if(!require(pacman)){install.packages("pacman")}
+  
+pacman::p_load(
+  tidyverse,    # Tratamento de dados
+  rio,          # Leitura de arquivos em diversos formatos
+  janitor,      # Ajuste de banco de dados
+  ggplot        # Plotar gráficos
+)
+
+```
+
+# Tratamento dos dados
+
+## Fitas espelhos:
+
+```{r fe_data}
+
+# Loop para importação de dados:
+
+anos <- 2022:2026
+
+for (ano in anos) {
+  caminho <- paste0("1.data/fita_espelho/fe_", ano,".xlsx")
+  dados_temporarios <- rio::import(caminho)
+  dados_temporarios <- clean_names(dados_temporarios)
+  nome_objeto <- paste0("fe_", ano)
+  assign(x = nome_objeto, value = dados_temporarios)
+}
+
+# Tratamento dos dados de ano a ano:
+
+# 2022:
+
+fe_2022_count <- fe_2022 %>% 
+  filter(cat == "T") %>% 
+  count(unid, name = "funcionarios_unidade")
+
+# 2023:
+
+fe_2023_count <- fe_2023 %>% 
+  filter(cat == "T") %>% 
+  count(unid, name = "funcionarios_unidade")
+
+# 2024:
+
+fe_2024_count <- fe_2024 %>% 
+  filter(cat == "T") %>% 
+  count(unid, name = "funcionarios_unidade")
+
+# 2025:
+
+fe_2025_count <- fe_2025 %>% 
+  filter(cat == "T") %>% 
+  count(unid, name = "funcionarios_unidade")
+
+# 2026:
+
+fe_2026_count <- fe_2026 %>% 
+  filter(cat == "T") %>% 
+  count(unid_lotacao, name = "funcionarios_unidade")
+
+```
+
+## Afastamentos de curta duração:
+
+```{r ac_data}
+
+# baixar banco de dados:
+
+temp <- 2022:2025
+
+for (ano in temp) {
+  caminho_2 <- paste0("1.data/afastamento_curto/ac_", ano,".xlsx")
+  dados_temporarios_2 <- rio::import(caminho_2)
+  dados_temporarios_2 <- clean_names(dados_temporarios_2)
+  nome_objeto_2 <- paste0("ac_", ano)
+  assign(x = nome_objeto_2, value = dados_temporarios_2)
+}
+
+# Tratar banco a banco:
+
+
+# 2022:
+
+chave_tradução_2022 <-  rio::import("2.metadata/tradutor_unidades.csv")%>% 
+  distinct(unidade_ac, .keep_all = TRUE)
+
+ac_2022 <- ac_2022 %>%
+  left_join(chave_tradução_2022, by = c("unidade" = "unidade_ac"))
+
+ac_2022_count <- ac_2022 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_ac_2022 <- ac_2022_count %>% 
+  left_join(fe_2022_count, by = "unid") %>% 
+  mutate(
+    percapita_ac_2022 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2022" = percapita_ac_2022)
+
+# rm(percapita_ac_2022)
+
+rio::export(percapita_ac_2022,"2.metadata/percapita/ac/percapita_ac_2022.xlsx")
+
+# 2023:
+
+chave_tradução_2023 <-  rio::import("2.metadata/tradutor_unidades.csv") %>% 
+  distinct(unidade_ac, .keep_all = TRUE)
+
+ac_2023 <- ac_2023 %>%
+  left_join(chave_tradução_2023, by = c("unidade" = "unidade_ac"))
+
+ac_2023_count <- ac_2023 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_ac_2023 <- ac_2023_count %>% 
+  left_join(fe_2023_count, by = "unid") %>% 
+  mutate(
+    percapita_ac_2023 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2023" = percapita_ac_2023)
+
+# rm(percapita_ac_2023)
+
+rio::export(percapita_ac_2023,"2.metadata/percapita/ac/percapita_ac_2023.xlsx")
+
+# 2024:
+
+chave_tradução_2024 <-  rio::import("2.metadata/tradutor_unidades.csv")%>% 
+  distinct(unidade_ac, .keep_all = TRUE)
+
+ac_2024 <- ac_2024 %>%
+  left_join(chave_tradução_2024, by = c("unidade" = "unidade_ac"))
+
+ac_2024_count <- ac_2024 %>%
+  count(unid, name = "afastamento_unidade")%>%
+  filter(!is.na(unid)) # duas observações que não tem unidade
+  
+percapita_ac_2024 <- ac_2024_count %>% 
+  left_join(fe_2024_count, by = "unid") %>% 
+  mutate(
+    percapita_ac_2024 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2024" = percapita_ac_2024)
+
+# rm(percapita_ac_2024)
+
+rio::export(percapita_ac_2024,"2.metadata/percapita/ac/percapita_ac_2024.xlsx")
+
+# 2025:
+
+chave_tradução_2025 <-  rio::import("2.metadata/tradutor_unidades.csv")%>% 
+  distinct(unidade_ac, .keep_all = TRUE)
+
+ac_2025 <- ac_2025 %>%
+  left_join(chave_tradução_2025, by = c("unidade" = "unidade_ac"))
+
+ac_2025_count <- ac_2025 %>%
+  count(unid, name = "afastamento_unidade") %>%
+  filter(!is.na(unid)) # uma observação que não tem unidade
+  
+percapita_ac_2025 <- ac_2025_count %>% 
+  left_join(fe_2025_count, by = "unid") %>% 
+  mutate(
+    percapita_ac_2025 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2025" = percapita_ac_2025) %>% 
+  filter(!is.na("2025"))
+
+# rm(percapita_ac_2024)
+
+rio::export(percapita_ac_2025,"2.metadata/percapita/ac/percapita_ac_2025.xlsx")
+
+```
+
+```{r ac_graphic}
+
+gini_ac <- rio::import("3.outputs/gini/ac/gini_ac.xlsx")
+
+# gráfico de linhas GINI:
+
+grafico_gini <- ggplot(gini_ac, aes(x = Ano, y = Gini)) +
+  geom_vline(xintercept = 2023, linetype = "dashed", color = "firebrick", size = 1) +
+  geom_line(color = "black", size = 1.2) +
+  geom_point(color = "black", size = 3) +
+  geom_label(
+    aes(label = format(round(Gini, 3), nsmall = 3, decimal.mark = ",")), 
+    vjust = -0.5, 
+    color = "black", 
+    size = 4, 
+    fontface = "bold",
+    label.size = NA,
+    fill = "white"
+  ) +
+  geom_line(aes(y = Gini_upper), color = "steelblue", linetype = "dotted", size = 0.8) +
+  geom_line(aes(y = Gini_lower), color = "steelblue", linetype = "dotted", size = 0.8) +
+  labs(
+    x = NULL,
+    y = "ÍNDICE DE GINI"
+  ) +
+  scale_x_continuous(
+    breaks = seq(min(gini_ac$Ano), max(gini_ac$Ano), by = 1),
+    expand = expansion(add = c(0.15, 0.15))
+  ) +
+  scale_y_continuous(limits = c(0, 1)) +
+  coord_cartesian(clip = "off") +
+  theme_minimal() +
+  theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+print(grafico_gini)
+
+ggsave(
+  filename = "3.outputs/gini/ac/gini_ac.png",
+  plot = grafico_gini,
+  width = 8,
+  height = 5,
+  dpi = 300,
+  bg = "white"
+)
+
+# gráfico de linhas RAZÃO INTERQUINTÍLICA:
+
+grafico_razao <- ggplot(gini_ac, aes(x = Ano, y = Razao20_20)) +
+  geom_vline(xintercept = 2023, linetype = "dashed", color = "firebrick", size = 1) +
+  geom_line(color = "#454546", size = 1) +
+  geom_point(color = "#454546", size = 3) +
+    geom_label(
+    aes(label = format(round(Razao20_20, 1), nsmall = 1, decimal.mark = ",")), 
+    vjust = -0.5, 
+    color = "#454546", 
+    size = 4, 
+    fontface = "bold",
+    label.size = NA, 
+    fill = "white"
+  ) +
+  
+  labs(
+    x = NULL,
+    y = "RAZÃO INTERQUINTÍLICA"
+  ) +
+  scale_x_continuous(
+    breaks = seq(min(gini_ac$Ano), max(gini_ac$Ano), by = 1),
+    expand = expansion(add = c(0.15, 0.15)) 
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0.05, 0.2))
+  ) +
+  coord_cartesian(clip = "off") +
+  theme_minimal() +
+  theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+print(grafico_razao)
+
+ggsave(
+  filename = "3.outputs/gini/ac/ri_ac.png",
+  plot = grafico_razao,
+  width = 8,
+  height = 5,
+  dpi = 300,
+  bg = "white"
+)
+
+```
+## Afastamentos de longa duração:
+
+```{r al_data}
+
+# baixar banco de dados:
+
+temp2 <- 2022:2025
+
+for (ano in temp2) {
+  caminho_3 <- paste0("1.data/afastamento_longo/al_", ano,".xlsx")
+  dados_temporarios_3 <- rio::import(caminho_3)
+  dados_temporarios_3 <- clean_names(dados_temporarios_3)
+  nome_objeto_3 <- paste0("al_", ano)
+  assign(x = nome_objeto_3, value = dados_temporarios_3)
+}
+
+# Tratar banco a banco:
+
+
+# 2022:
+
+al_2022 <- al_2022 %>%
+  left_join(fe_2022, by = "nome")
+
+al_2022_count <- al_2022 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_al_2022 <- al_2022_count %>% 
+  left_join(fe_2022_count, by = "unid") %>% 
+  mutate(
+    percapita_al_2022 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2022" = percapita_al_2022)
+
+# rm(percapita_al_2022)
+
+rio::export(percapita_al_2022,"2.metadata/percapita/al/percapita_al_2022.xlsx")
+
+# 2023:
+
+al_2023 <- al_2023 %>%
+  left_join(fe_2023, by = "nome")
+
+al_2023_count <- al_2023 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_al_2023 <- al_2023_count %>% 
+  left_join(fe_2023_count, by = "unid") %>% 
+  mutate(
+    percapita_al_2023 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2023" = percapita_al_2023)
+
+# rm(percapita_al_2023)
+
+rio::export(percapita_al_2023,"2.metadata/percapita/al/percapita_al_2023.xlsx")
+
+# 2024:
+
+al_2024 <- al_2024 %>%
+  left_join(fe_2024, by = "nome")
+
+al_2024_count <- al_2024 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_al_2024 <- al_2024_count %>% 
+  left_join(fe_2024_count, by = "unid") %>% 
+  mutate(
+    percapita_al_2024 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2024" = percapita_al_2024)
+
+# rm(percapita_al_2024)
+
+rio::export(percapita_al_2024,"2.metadata/percapita/al/percapita_al_2024.xlsx")
+
+# 2025:
+
+al_2025 <- al_2025 %>%
+  left_join(fe_2025, by = "nome")
+
+al_2025_count <- al_2025 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_al_2025 <- al_2025_count %>% 
+  left_join(fe_2025_count, by = "unid") %>% 
+  mutate(
+    percapita_al_2025 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2025" = percapita_al_2025)
+
+# rm(percapita_al_2025)
+
+rio::export(percapita_al_2025,"2.metadata/percapita/al/percapita_al_2025.xlsx")
+
+```
+
+```{r al_graphic}
+
+gini_al <- rio::import("3.outputs/gini/al/gini_al.xlsx")
+
+# gráfico de linhas GINI:
+
+grafico_gini_al <- ggplot(gini_al, aes(x = Ano, y = Gini)) +
+  geom_vline(xintercept = 2023, linetype = "dashed", color = "firebrick", size = 1) +
+  geom_line(color = "black", size = 1.2) +
+  geom_point(color = "black", size = 3) +
+  geom_label(
+    aes(label = format(round(Gini, 3), nsmall = 3, decimal.mark = ",")), 
+    vjust = -0.5,
+    color = "black", 
+    size = 4, 
+    fontface = "bold",
+    label.size = NA,
+    fill = "white"
+  ) +
+  geom_line(aes(y = Gini_upper), color = "steelblue", linetype = "dotted", size = 0.8) +
+  geom_line(aes(y = Gini_lower), color = "steelblue", linetype = "dotted", size = 0.8) +
+  labs(
+    x = NULL,
+    y = "ÍNDICE DE GINI"
+  ) +
+  scale_x_continuous(
+    breaks = seq(min(gini_al$Ano), max(gini_al$Ano), by = 1),
+    expand = expansion(add = c(0.15, 0.15))
+  ) +
+  scale_y_continuous(limits = c(0, 1)) +
+  coord_cartesian(clip = "off") +
+  theme_minimal() +
+  theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+print(grafico_gini_al)
+
+ggsave(
+  filename = "3.outputs/gini/al/gini_al.png",
+  plot = grafico_gini_al,
+  width = 8,
+  height = 5,
+  dpi = 300,
+  bg = "white"
+)
+
+# gráfico de linhas RAZÃO INTERQUINTÍLICA:
+
+grafico_razao_al <- ggplot(gini_al, aes(x = Ano, y = Razao20_20)) +
+  geom_vline(xintercept = 2023, linetype = "dashed", color = "firebrick", size = 1) +
+  geom_line(color = "#454546", size = 1) +
+  geom_point(color = "#454546", size = 3) +
+  geom_label(
+    aes(label = format(round(Razao20_20, 1), nsmall = 1, decimal.mark = ",")), 
+    vjust = -0.5, 
+    color = "#454546",
+    size = 4, 
+    fontface = "bold",
+    label.size = NA, 
+    fill = "white"
+  ) +
+  labs(
+    x = NULL,
+    y = "RAZÃO INTERQUINTÍLICA"
+  ) +
+  scale_x_continuous(
+    breaks = seq(min(gini_al$Ano), max(gini_al$Ano), by = 1),
+    expand = expansion(add = c(0.15, 0.15)) 
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0.05, 0.2))
+  ) +
+  coord_cartesian(clip = "off") +
+  theme_minimal() +
+  theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+print(grafico_razao_al)
+
+ggsave(
+  filename = "3.outputs/gini/al/ri_al.png",
+  plot = grafico_razao_al,
+  width = 8,
+  height = 5,
+  dpi = 300,
+  bg = "white"
+)
+
+```
+
+
+## Auxílio financeiro:
+
+```{r af_data}
+
+# baixar banco de dados:
+
+temp3 <- 2023:2025
+
+for (ano in temp3) {
+  caminho_3 <- paste0("1.data/auxilio_financeiro/af_", ano,".xlsx")
+  dados_temporarios_3 <- rio::import(caminho_3)
+  dados_temporarios_3 <- clean_names(dados_temporarios_3)
+  nome_objeto_3 <- paste0("af_", ano)
+  assign(x = nome_objeto_3, value = dados_temporarios_3)
+}
+
+# Tratar banco a banco:
+
+# 2023:
+
+chave_tradução_2023_2 <-  rio::import("2.metadata/tradutor_unidades_2.csv")%>% 
+  distinct(unid_af, .keep_all = TRUE)
+
+af_2023 <- af_2023 %>%
+  left_join(chave_tradução_2023_2, by = "unid_af")
+
+af_2023_count <- af_2023 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_af_2023 <- af_2023_count %>% 
+  left_join(fe_2023_count, by = "unid") %>% 
+  mutate(
+    percapita_af_2023 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2023" = percapita_af_2023)
+
+# rm(percapita_ac_2022)
+
+rio::export(percapita_af_2023,"2.metadata/percapita/af/percapita_af_2023.xlsx")
+
+
+# 2024:
+
+chave_tradução_2024_2 <-  rio::import("2.metadata/tradutor_unidades_2.csv")%>% 
+  distinct(unid_af, .keep_all = TRUE)
+
+af_2024 <- af_2024 %>%
+  left_join(chave_tradução_2024_2, by = "unid_af")
+
+af_2024_count <- af_2024 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_af_2024 <- af_2024_count %>% 
+  left_join(fe_2024_count, by = "unid") %>% 
+  mutate(
+    percapita_af_2024 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2024" = percapita_af_2024)
+
+# rm(percapita_ac_2022)
+
+rio::export(percapita_af_2024,"2.metadata/percapita/af/percapita_af_2024.xlsx")
+
+# 2025:
+
+chave_tradução_2025_2 <-  rio::import("2.metadata/tradutor_unidades_2.csv")%>% 
+  distinct(unid_af, .keep_all = TRUE)
+
+af_2025 <- af_2025 %>%
+  left_join(chave_tradução_2025_2, by = "unid_af")
+
+af_2025_count <- af_2025 %>%
+  count(unid, name = "afastamento_unidade")
+  
+percapita_af_2025 <- af_2025_count %>% 
+  left_join(fe_2025_count, by = "unid") %>% 
+  mutate(
+    percapita_af_2025 = afastamento_unidade / funcionarios_unidade
+    ) %>% 
+  select("2025" = percapita_af_2025)
+
+# rm(percapita_ac_2022)
+
+rio::export(percapita_af_2025,"2.metadata/percapita/af/percapita_af_2025.xlsx")
+
+```
+
+```{r af_graphic}
+
+gini_af <- rio::import("3.outputs/gini/af/gini_af.xlsx")
+
+# gráfico de linhas GINI:
+
+grafico_gini_af <- ggplot(gini_af, aes(x = Ano, y = Gini)) +
+  geom_vline(xintercept = 2023, linetype = "dashed", color = "firebrick", size = 1) +
+  geom_line(color = "black", size = 1.2) +
+  geom_point(color = "black", size = 3) +
+  geom_label(
+    aes(label = format(round(Gini, 3), nsmall = 3, decimal.mark = ",")), 
+    vjust = -0.5, 
+    color = "black", 
+    size = 4, 
+    fontface = "bold",
+    label.size = NA,
+    fill = "white"
+  ) +
+  geom_line(aes(y = Gini_upper), color = "steelblue", linetype = "dotted", size = 0.8) +
+  geom_line(aes(y = Gini_lower), color = "steelblue", linetype = "dotted", size = 0.8) +
+  labs(
+    x = NULL,
+    y = "ÍNDICE DE GINI"
+  ) +
+  scale_x_continuous(
+    breaks = seq(min(gini_af$Ano), max(gini_af$Ano), by = 1),
+    expand = expansion(add = c(0.15, 0.15))
+  ) +
+  scale_y_continuous(limits = c(0, 1)) +
+  coord_cartesian(clip = "off") +
+  theme_minimal() +
+  theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+print(grafico_gini_af)
+
+ggsave(
+  filename = "3.outputs/gini/af/gini_af.png",
+  plot = grafico_gini_af,
+  width = 8,
+  height = 5,
+  dpi = 300,
+  bg = "white"
+)
+
+# gráfico de linhas RAZÃO INTERQUINTÍLICA:
+
+grafico_razao_af <- ggplot(gini_af, aes(x = Ano, y = Razao20_20)) +
+  geom_vline(xintercept = 2023, linetype = "dashed", color = "firebrick", size = 1) +
+  geom_line(color = "#454546", size = 1) +
+  geom_point(color = "#454546", size = 3) +
+    geom_label(
+    aes(label = format(round(Razao20_20, 1), nsmall = 1, decimal.mark = ",")), 
+    vjust = -0.5, 
+    color = "#454546", 
+    size = 4, 
+    fontface = "bold",
+    label.size = NA, 
+    fill = "white"
+  ) +
+  
+  labs(
+    x = NULL,
+    y = "RAZÃO INTERQUINTÍLICA"
+  ) +
+  scale_x_continuous(
+    breaks = seq(min(gini_af$Ano), max(gini_af$Ano), by = 1),
+    expand = expansion(add = c(0.15, 0.15)) 
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0.05, 0.2))
+  ) +
+  coord_cartesian(clip = "off") +
+  theme_minimal() +
+  theme(plot.margin = margin(t = 20, r = 10, b = 10, l = 10))
+
+print(grafico_razao_af)
+
+ggsave(
+  filename = "3.outputs/gini/af/ri_af.png",
+  plot = grafico_razao_af,
+  width = 8,
+  height = 5,
+  dpi = 300,
+  bg = "white"
+)
+
+```
+
+
+
+
+
+
